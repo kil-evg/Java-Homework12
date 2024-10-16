@@ -76,11 +76,11 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public Integer getStudentsQuantityByNames(Set<String> names) {
-//        return (int) StreamSupport.stream(studentRepository.findAll().spliterator(),false)
-//                .filter(student -> names.contains(student.getName()))
-//                .count();
-        return names.stream().mapToInt(name -> findStudentsByName(name).size()).sum();
+    public Long getStudentsQuantityByNames(Set<String> names) {
+        return StreamSupport.stream(studentRepository.findAll().spliterator(),false)
+                .filter(student -> names.contains(student.getName()))
+                .count();
+        //return names.stream().mapToInt(name -> findStudentsByName(name).size()).sum();
     }
 
     @Override
