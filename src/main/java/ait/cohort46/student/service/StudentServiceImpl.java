@@ -7,28 +7,22 @@ import ait.cohort46.student.dto.StudentDto;
 import ait.cohort46.student.dto.StudentUpdateDto;
 import ait.cohort46.student.dto.exceptions.StudentNotFoundException;
 import ait.cohort46.student.model.Student;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-//@Component
 @Service
 @RequiredArgsConstructor
 public class StudentServiceImpl implements StudentService {
-    //@Autowired
+
     private final StudentRepository studentRepository;
 
     @Override
     public Boolean addStudent(StudentAddDto studentAddDto) {
-        if (studentRepository.findById(studentAddDto.getId()).isPresent()) {
+        if (studentRepository.existsById(studentAddDto.getId())) {
             return false;
         }
         Student student = new Student(studentAddDto.getId(), studentAddDto.getName(), studentAddDto.getPassword());
@@ -39,25 +33,29 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public StudentDto findStudent(Long id) {
         Student student = studentRepository.findById(id).orElseThrow(StudentNotFoundException::new);
-        StudentDto studentDto = new StudentDto(student.getId(), student.getName(), student.getScores());
-        return studentDto;
+        return new StudentDto(student.getId(), student.getName(), student.getScores());
     }
 
     @Override
     public StudentDto removeStudent(Long id) {
         Student student = studentRepository.findById(id).orElseThrow(StudentNotFoundException::new);
         studentRepository.deleteById(id);
-        return new StudentDto(student.getId(), student.getName(), student.getScores());
+        return new StudentDto(id, student.getName(), student.getScores());
     }
 
     @Override
     public StudentAddDto updateStudent(Long id, StudentUpdateDto studentUpdateDto) {
         Student student = studentRepository.findById(id).orElseThrow(StudentNotFoundException::new);
-        student.setName(studentUpdateDto.getName());
-        student.setPassword(studentUpdateDto.getPassword());
+        if (studentUpdateDto.getName() != null) {
+            student.setName(studentUpdateDto.getName());
+        }
+        if (studentUpdateDto.getPassword() != null) {
+            student.setPassword(studentUpdateDto.getPassword());
+        }
         studentRepository.save(student);
         return new StudentAddDto(student.getId(), student.getName(), student.getPassword());
     }
+
 
     @Override
     public Boolean addScore(Long id, ScoreDto scoreDto) {
@@ -71,25 +69,25 @@ public class StudentServiceImpl implements StudentService {
     public List<StudentDto> findStudentsByName(String name) {
         return studentRepository.findByNameIgnoreCase(name)
                 .map(student -> new StudentDto(student.getId(), student.getName(), student.getScores()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public Long getStudentsQuantityByNames(Set<String> names) {
-        return StreamSupport.stream(studentRepository.findAll().spliterator(),false)
-                .filter(student -> names.contains(student.getName()))
-                .count();
-        //return names.stream().mapToInt(name -> findStudentsByName(name).size()).sum();
+        return studentRepository.findByNameIn(names).count();
     }
 
     @Override
     public List<StudentDto> findStudentsByExamMinScore(String exam, Integer minScore) {
-        return StreamSupport.stream(studentRepository.findAll().spliterator(),false)
-                .filter(student -> {
-                    Integer score = student.getScores().get(exam);
-                    return score != null && score >= minScore;
-                })
+        return studentRepository.findByExamMinScore(exam, minScore)
                 .map(student -> new StudentDto(student.getId(), student.getName(), student.getScores()))
-                .collect(Collectors.toList());
+                .toList();
+//        return studentRepository.getAllBy()
+//                .filter(student -> {
+//                    Integer score = student.getScores().get(exam);
+//                    return score != null && score >= minScore;
+//                })
+//                .map(student -> new StudentDto(student.getId(), student.getName(), student.getScores()))
+//                .toList();
     }
 }
